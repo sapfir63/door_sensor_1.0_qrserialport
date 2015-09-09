@@ -1,0 +1,22 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Images/application-exit.png</file>
+        <file>Images/clear.png</file>
+        <file>Images/connect.png</file>
+        <file>Images/disconnect.png</file>
+        <file>Images/door_close.png</file>
+        <file>Images/door_no.png</file>
+        <file>Images/door_open.png</file>
+        <file>Images/help16.png</file>
+        <file>Images/sapfir64.png</file>
+        <file>Images/settings.png</file>
+        <file>Images/Sapfir128.png</file>
+        <file>Images/zagruzka.png</file>
+        <file>Images/1/Envelope.png</file>
+        <file>Images/1/Gear.png</file>
+        <file>Images/1/Link.png</file>
+        <file>Images/1/Server.png</file>
+        <file>Images/1/Tools.png</file>
+        <file>Images/1/USB Drive.png</file>
+    </qresource>
+</RCC>
