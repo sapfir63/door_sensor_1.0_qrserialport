@@ -75,6 +75,20 @@ public:
 		quint8 data[16];
 	}__attribute__((packed));
 
+
+	enum Commands
+	{
+		READ_ID           = 0x01,
+		SET_TIME          = 0x02,
+		GET_TIME          = 0x03,
+		GET_DOOR_EVENT    = 0x04,
+		RESET_DOOR_EVENT  = 0x05,
+		START_DOWNLOADER  = 0x41,
+		STOP_DOWNLOADER   = 0x42,
+		WRITE_IMAGE_BLOCK = 0x43,
+	};
+	void sendCommand(Commands command, const void* data = NULL);
+
 private slots:
 	void slotPollingDevice();
 	void slotResetDoorEvent();
@@ -84,16 +98,7 @@ private slots:
 
 private:
 	Ui::MainWindow *ui;
-	enum Commands
-	{
-		READ_ID          = 0x01,
-		SET_TIME         = 0x02,
-		GET_TIME         = 0x03,
-		GET_DOOR_EVENT   = 0x04,
-		RESET_DOOR_EVENT = 0x05,
-	};
 
-	void sendCommand(Commands command, const void* data = NULL);
 	void parseResponsePacket();
 //	void updateUi(void);
 	void createTray();

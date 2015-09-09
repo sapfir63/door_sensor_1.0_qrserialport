@@ -2,6 +2,8 @@
 #define SETTINGSPROGRAM_H
 
 #include <QDialog>
+#include <QFileDialog>
+#include <stdint.h>
 
 namespace Ui
 {
@@ -33,10 +35,16 @@ public:
 
 private slots:
     void slotAutoRun();
+	void slotStartProg();
 private:
     Ui::SettingsProgram *ui_program;
   //  void defaultEmail();
  //   EMAIL_SETTINGS_T   email;
+	QFile* file;
+	QFileDialog *fileDialog;
+	unsigned char* buff;
+	unsigned int bufLenght;
+	unsigned int dataCounter;
 
 };
 

@@ -93,6 +93,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
 	QObject::connect(ui->btnOpenReset, SIGNAL(clicked()), SLOT(slotResetDoorEvent()));
 
+
 }
 //! [3]
 
@@ -186,6 +187,7 @@ void MainWindow::slotPollingDevice()
 	}
 
 }
+
 
 /*
  * сброс аварийного сообщения
