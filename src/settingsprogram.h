@@ -1,9 +1,9 @@
 #ifndef SETTINGSPROGRAM_H
 #define SETTINGSPROGRAM_H
 
-#include <QDialog>
-#include <QFileDialog>
 #include <stdint.h>
+
+#include <QDialog>
 
 namespace Ui
 {
@@ -14,7 +14,7 @@ class SettingsProgram : public QDialog {
 Q_OBJECT
 
 public:
-    SettingsProgram(QDialog * parent = 0);
+	SettingsProgram(QDialog * parent = 0);
     ~SettingsProgram();
 
     typedef struct
@@ -35,16 +35,8 @@ public:
 
 private slots:
     void slotAutoRun();
-	void slotStartProg();
 private:
     Ui::SettingsProgram *ui_program;
-  //  void defaultEmail();
- //   EMAIL_SETTINGS_T   email;
-	QFile* file;
-	QFileDialog *fileDialog;
-	unsigned char* buff;
-	unsigned int bufLenght;
-	unsigned int dataCounter;
 
 };
 

@@ -45,6 +45,8 @@
 
 #include <QSystemTrayIcon>
 
+#include <QFileDialog>
+
 //QT_USE_NAMESPACE
 
 //QT_BEGIN_NAMESPACE
@@ -86,6 +88,7 @@ public:
 		START_DOWNLOADER  = 0x41,
 		STOP_DOWNLOADER   = 0x42,
 		WRITE_IMAGE_BLOCK = 0x43,
+		SOFTWARE_RESET    = 0x50,			//
 	};
 	void sendCommand(Commands command, const void* data = NULL);
 
@@ -94,6 +97,7 @@ private slots:
 	void slotResetDoorEvent();
 	void slotTrayMenu(QAction* pAction);
 	void trayIconClicked(QSystemTrayIcon::ActivationReason reason);
+	void slotStartProg();
   //  void handleError(QSerialPort::SerialPortError error);
 
 private:
@@ -119,9 +123,16 @@ private:
 	QAction *tray_update;
 	QAction *tray_about;
 	QAction *tray_quit;
+	QAction *tray_device;
 
 	QSystemTrayIcon *trayIcon;
 	QMenu           *trayIconMenu;
+
+	QFileDialog      *fileDialog;
+	QFile            *file;
+	unsigned char    *buff;
+	unsigned int      bufLenght;
+	unsigned int      dataCounter;
 
 };
 

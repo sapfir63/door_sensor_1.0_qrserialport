@@ -16,7 +16,7 @@ class SettingsUpdate : public QDialog
 	Q_OBJECT
 
 public:
-    explicit SettingsUpdate(int act1);
+	explicit SettingsUpdate(int act1);
 	~SettingsUpdate();
 
     /* функции записи значений из формы */

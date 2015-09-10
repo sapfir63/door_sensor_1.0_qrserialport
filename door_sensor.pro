@@ -1,4 +1,4 @@
-QT += widgets serialport network
+QT += core gui widgets serialport network
 
 TARGET = door_sensor
 TEMPLATE = app
@@ -35,7 +35,8 @@ SOURCES += \
     libs/smtpclient/mimetext.cpp \
     libs/smtpclient/quotedprintable.cpp \
     libs/smtpclient/smtpclient.cpp \
-    src/msgutilsmy.cpp
+    src/msgutilsmy.cpp \
+#	src/updatedevice.cpp
 
 HEADERS += \
 	src/mainwindow.h \
@@ -64,7 +65,8 @@ HEADERS += \
     libs/smtpclient/quotedprintable.h \
     libs/smtpclient/smtpclient.h \
     libs/smtpclient/SmtpMime \
-    src/msgutilsmy.h
+    src/msgutilsmy.h \
+#	src/updatedevice.h
 
 FORMS += \
 	forms/mainwindow.ui \
@@ -72,7 +74,8 @@ FORMS += \
     forms/frmabout.ui \
     forms/settingsemail.ui \
     forms/settingsprogram.ui \
-    forms/frmmain.ui
+    forms/frmmain.ui \
+#	forms/updatedevice.ui
 
 RESOURCES += \
     qrc/door_sensor.qrc

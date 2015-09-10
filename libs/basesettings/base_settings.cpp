@@ -128,17 +128,18 @@ void BaseSettings::updateDeviceSettings(BASE_DEVICE_SETTINGS_S device)
 {
 	QSettings set(this->getNameFileIni(),QSettings::IniFormat);
 	set.beginGroup("device");
-	set.setValue( "update",     device.UPDATE);
-	set.setValue( "new",        device.NEW);
-	set.setValue( "enable",     device.ENABLE);
-	set.setValue( "version",    device.VERSION);
-	set.setValue( "date",       device.DATE.Date);
-	set.setValue( "month",      device.DATE.Month);
-	set.setValue( "year",       device.DATE.Year);
-	set.setValue( "hours",      device.TIME.Hours);
-	set.setValue( "minutes",    device.TIME.Minutes);
-	set.setValue( "seconds",    device.TIME.Seconds);
-	set.setValue( "count",      device.COUNT);
+	set.setValue( "state",    device.STATE);
+	set.setValue( "update",   device.UPDATE);
+	set.setValue( "new",      device.NEW);
+	set.setValue( "enable",   device.ENABLE);
+	set.setValue( "version",  device.VERSION);
+	set.setValue( "date",     device.DATE.Date);
+	set.setValue( "month",    device.DATE.Month);
+	set.setValue( "year",     device.DATE.Year);
+	set.setValue( "hours",    device.TIME.Hours);
+	set.setValue( "minutes",  device.TIME.Minutes);
+	set.setValue( "seconds",  device.TIME.Seconds);
+	set.setValue( "count",    device.COUNT);
 	set.endGroup();
 	this->device = device;
 }

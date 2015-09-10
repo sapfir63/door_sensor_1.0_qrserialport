@@ -21,8 +21,6 @@ SettingsProgram::SettingsProgram(QDialog *parent) :
 	connect(ui_program->pushButtonOk,     SIGNAL( clicked() ), this, SLOT( accept()));
 	connect(ui_program->pushButtonCancel, SIGNAL( clicked() ), this, SLOT( reject()));
 
-	connect(ui_program->btnFileOpen,  SIGNAL(clicked()), fileDialog,SLOT(exec()));
-	connect(ui_program->btnStartProg, SIGNAL(clicked()), SLOT(slotStartProg()));
 
 }
 
@@ -52,24 +50,3 @@ void SettingsProgram::slotAutoRun()
 }
 
 
-void SettingsProgram::slotStartProg()
-{
-	if(ui_program->filePath->text().length()!=0)
-	{
-		file=new QFile(ui_program->filePath->text());
-
-		if(file->open(QFile::ReadOnly))
-		{
-			QByteArray byteArray=file->readAll();
-
-			bufLenght=byteArray.length();
-			buff=new unsigned char[bufLenght];
-			//копируем образ
-			for(int i=0; i<byteArray.length();i++)
-				buff[i]=byteArray.data()[i];
-			file->close();
-			ui_program->progressBar->setValue(0);
-	//		MainWindow::sendCommand(MainWindow::START_DOWNLOADER);
-		}
-	}
-}

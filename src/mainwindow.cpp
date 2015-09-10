@@ -37,6 +37,7 @@
 #include <QtSerialPort/QSerialPort>
 #include <QtSerialPort/QSerialPortInfo>
 #include <QDateTime>
+#include <QFileDialog>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -52,6 +53,7 @@
 #include "frmmain.h"
 #include "frmabout.h"
 #include "sendemail.h"
+#include "updatedevice.h"
 
 
 QT_USE_NAMESPACE
@@ -76,8 +78,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	QApplication::setQuitOnLastWindowClosed(false);
 	this->createTray();
 
+	fileDialog = new QFileDialog;
+
+
 	ui->tab->hide();
 	ui->tab_2->show();
+	ui->tab_3->hide();
 	ui->tabWidget->tabBar()->hide();
 
 	ui->btnOpenReset->setDisabled(true);
@@ -91,7 +97,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	timer_polling->setInterval(1000);
 	timer_polling->start();
 
-	QObject::connect(ui->btnOpenReset, SIGNAL(clicked()), SLOT(slotResetDoorEvent()));
+	connect(ui->btnOpenReset, SIGNAL(clicked()), SLOT(slotResetDoorEvent()));
+
+	connect(ui->btnStartProg, SIGNAL(clicked()), SLOT(slotStartProg()));
+	connect(ui->btnFileOpen,  SIGNAL(clicked()), fileDialog, SLOT(exec()));
+	connect(fileDialog,SIGNAL(fileSelected(QString)),ui->filePath,SLOT(setText(QString)));
 
 
 }
@@ -131,7 +141,7 @@ void MainWindow::slotPollingDevice()
 		qDebug()<< name;
 		SettingsDialog::Settings p = settings->settings();
 		serial->setPortName(name);
-		serial->setBaudRate(p.baudRate);
+		serial->setBaudRate(QSerialPort::Baud115200 /*p.baudRate*/);
 		serial->setDataBits(p.dataBits);
 		serial->setParity(p.parity);
 		serial->setStopBits(p.stopBits);
@@ -156,6 +166,11 @@ void MainWindow::slotPollingDevice()
 		else
 			sendCommand(GET_DOOR_EVENT);
 	}
+//	if(device.STATE == BaseSettings::UPDATE)
+//	{
+//		 ui->progressBar->setValue((dataCounter*100)/bufLenght);
+//		return;
+//	}
 	if(program.alarm_email_enable && device.COUNT)
 	{
 		QDateTime datetime = QDateTime::currentDateTime();
@@ -176,8 +191,6 @@ void MainWindow::slotPollingDevice()
 	{
 		BaseSettings::BASE_DEVICE_SETTINGS_S device = BaseSettings::getInstance().getDeviceSettings();
 		 /* обновим требумые значения если произошло событие */
-	//	updateUi();
-
 		handlerDisplay();
 		handlerTray();
 
@@ -203,14 +216,59 @@ void MainWindow::slotResetDoorEvent()
  */
 void MainWindow::sendCommand(Commands command, const void* data)
 {
+	BaseSettings::BASE_DEVICE_SETTINGS_S device = BaseSettings::getInstance().getDeviceSettings();
 //	qDebug() << "sendCommand" ;
 	SettingsDialog::Settings p = settings->settings();
-	if (serial->open(QIODevice::ReadWrite))
+	if(device.STATE != BaseSettings::FIRMWARE)
+	{
+
+		if (serial->open(QIODevice::ReadWrite))
+		{
+			timer_polling->stop();
+			settingsPacket.startByte=0xAB;
+			settingsPacket.command=command;
+			//	serial->flush();
+			if (data != NULL)
+				memcpy(settingsPacket.data, data, sizeof(SettingsPacket));
+			serial->write(reinterpret_cast<char*>(&settingsPacket));
+			if(serial->waitForReadyRead(WAIT_DELAY))
+			{
+				QByteArray responseData = serial->readAll();
+				while (serial->waitForReadyRead(10))
+					responseData += serial->readAll();
+
+				memcpy(&settingsPacket,responseData.data(),sizeof(settingsPacket));
+
+				parseResponsePacket();
+				//			ui->statusBar->showMessage("serial->readAll(");
+
+			}
+			else
+			{
+				//			ui->statusBar->showMessage("timeout");
+			}
+			serial->close();
+			//	if(device.STATE != BaseSettings::FIRMWARE)
+			{
+				/* запускаем таймер опроса устройства */
+				timer_polling->start(1000);
+			}
+		}
+		else
+		{
+			//		ui->statusBar->showMessage(tr("Open error"));
+			BaseSettings::BASE_DEVICE_SETTINGS_S device = BaseSettings::getInstance().getDeviceSettings();
+			device.ENABLE = false;
+			device.STATE  = BaseSettings::IDLE;
+			BaseSettings::getInstance().updateDeviceSettings(device);
+		}
+	}
+	else
 	{
 		timer_polling->stop();
-		settingsPacket.startByte=0xAB;
-		settingsPacket.command=command;
-	//	serial->flush();
+		settingsPacket.startByte = 0xAB;
+		settingsPacket.command   = command;
+		//	serial->flush();
 		if (data != NULL)
 			memcpy(settingsPacket.data, data, sizeof(SettingsPacket));
 		serial->write(reinterpret_cast<char*>(&settingsPacket));
@@ -223,30 +281,16 @@ void MainWindow::sendCommand(Commands command, const void* data)
 			memcpy(&settingsPacket,responseData.data(),sizeof(settingsPacket));
 
 			parseResponsePacket();
-//			ui->statusBar->showMessage("serial->readAll(");
+			//			ui->statusBar->showMessage("serial->readAll(");
 
 		}
-		else
-		{
-//			ui->statusBar->showMessage("timeout");
-		}
-		serial->close();
-		/* запускаем таймер опроса устройства */
-		timer_polling->start(1000);
-	}
-	else
-	{
-//		ui->statusBar->showMessage(tr("Open error"));
-		BaseSettings::BASE_DEVICE_SETTINGS_S device = BaseSettings::getInstance().getDeviceSettings();
-		device.ENABLE = false;
-		device.STATE  = BaseSettings::IDLE;
-		BaseSettings::getInstance().updateDeviceSettings(device);
+
 	}
 }
 
 
 
-
+unsigned char* sendData;
 
 /*
  * обработка полученного пакета
@@ -318,6 +362,74 @@ void MainWindow::parseResponsePacket()
 					/* обновим значения устройства */
 					BaseSettings::getInstance().updateDeviceSettings(device);
 					break;
+
+				case START_DOWNLOADER:
+					qDebug() << "START_DOWNLOADER" ;
+					if(settingsPacket.data[0]==1)// все ок
+					{
+						device.STATE = BaseSettings::FIRMWARE;
+						/* обновим значения устройства */
+						BaseSettings::getInstance().updateDeviceSettings(device);
+
+						sendData=buff;
+						dataCounter=0;
+
+						ui->progressBar->setValue(0);
+
+						sendCommand(WRITE_IMAGE_BLOCK,sendData);
+
+					}
+					else
+						 QMessageBox::warning(0,"Ошибка","Невозможно перевести устройство в режим загрузки прошивки");
+					break;
+				case WRITE_IMAGE_BLOCK:
+//					qDebug() << "WRITE_IMAGE_BLOCK" ;
+					if(settingsPacket.data[0]==1)// все ок
+					{
+						sendData+=8;
+						dataCounter+=8;
+						if(dataCounter<bufLenght)
+						{
+							ui->progressBar->setValue((dataCounter*100)/bufLenght);
+							sendCommand(WRITE_IMAGE_BLOCK,sendData);
+
+						}
+						else
+						{
+							qDebug()<<"Write complete";
+							ui->progressBar->setValue(0);
+					//		settingsPacket.startByte=0xAB;
+					//		settingsPacket.command=STOP_DOWNLOADER;
+
+
+//							delete buff;
+							serial->flush();
+							sendCommand(STOP_DOWNLOADER);
+//							serial->write(reinterpret_cast<char*>(&settingsPacket),sizeof(SettingsPacket));
+						}
+					}
+					break;
+				case STOP_DOWNLOADER:
+					qDebug() << "STOP_DOWNLOADER" ;
+					serial->close();
+					device.ENABLE = false;
+					device.STATE  = BaseSettings::IDLE;
+					/* обновим значения устройства */
+					BaseSettings::getInstance().updateDeviceSettings(device);
+					if(settingsPacket.data[0] == 0)// ошибка
+					{
+						QMessageBox::warning(0,"Ошибка", "Ошибка файла!");
+		//				device.STATE == BaseSettings::READY;
+					}
+					else
+					{
+		//				device.STATE == BaseSettings::READY;
+					}
+					/* обновим значения устройства */
+			//		BaseSettings::getInstance().updateDeviceSettings(device);
+					sendCommand(SOFTWARE_RESET);
+					break;
+
 			}
 
 		}/* конец обработка команд обмена */
@@ -399,6 +511,7 @@ void MainWindow::handlerDisplay(void)
 	{
 		ui->tab->hide();
 		ui->tab_2->show();
+		ui->tab_3->hide();
 		ui->labelDoorOpen->clear();
 		ui->labelDoorOpenTime->clear();
 		ui->btnOpenReset->setDisabled(true);
@@ -407,6 +520,7 @@ void MainWindow::handlerDisplay(void)
 	{
 		ui->tab->show();
 		ui->tab_2->hide();
+		ui->tab_3->hide();
 		ui->btnOpenReset->setEnabled(true);
 //		this->statusText->setText (QString("Датчик двери"));
 //		this->statusText1->setText (QString("Версия %1").arg((char*)(device.VERSION)));
@@ -444,6 +558,7 @@ void MainWindow::handlerTray(void)
 //	qDebug() << "trayHandler";
 	if(device.ENABLE)
 	{
+		tray_device->setEnabled(true);
 		if(!device.COUNT && !device.DOOR_OPEN)
 		{
 			trayIcon->setIcon(QIcon(":/Images/door_close.png"));
@@ -457,6 +572,7 @@ void MainWindow::handlerTray(void)
 	}
 	else
 	{
+		tray_device->setDisabled(true);
 		trayIcon->setIcon(QIcon(":/Images/door_no.png"));
 		trayIcon->showMessage("", QString("%1").arg("Датчик не обнаружен"));
 	}
@@ -512,11 +628,13 @@ void MainWindow::createTray()
 	tray_settings = new QAction("Настройки", this);
 	tray_email    = new QAction("Email", this);
 	tray_about    = new QAction("О программе", this);
+	tray_device   = new QAction("Прошивка", this);
 	tray_update   = new QAction("Обновление", this);
 	tray_quit     = new QAction("Выход", this);
 
 	tray_settings->setIcon(QIcon(":/Images/1/Tools.png"));
 	tray_email->setIcon(QIcon(":/Images/1/Envelope.png"));
+	tray_device->setIcon(QIcon(":/Images/1/Server.png"));
 	tray_update->setIcon(QIcon(":/Images/1/Server.png"));
 	tray_about->setIcon(QIcon(":/Images/help16.png"));
 	tray_quit->setIcon(QIcon(":/Images/application-exit.png"));
@@ -525,6 +643,7 @@ void MainWindow::createTray()
 
 	trayIconMenu->addAction(tray_settings);
 	trayIconMenu->addAction(tray_email);
+	trayIconMenu->addAction(tray_device);
 	trayIconMenu->addAction(tray_update);
 	trayIconMenu->addAction(tray_about);
 	trayIconMenu->addSeparator();
@@ -585,6 +704,23 @@ void MainWindow::slotTrayMenu(QAction* pAction)
 			delete dialog;
 		}
 
+		if(pAction == tray_device)
+		{
+
+			ui->tab->hide();
+			ui->tab_3->show();
+
+		//	slotStartProg();
+
+//			buff=new unsigned char[bufLenght];
+
+//			UpdateDevice *dialog = new UpdateDevice(0, buff, &bufLenght);
+//			if (dialog->exec() == QDialog::Accepted)
+//			{
+//			}
+//			delete dialog;
+		}
+
 		if(pAction == tray_about)
 		{
 			frmAbout *dialog = new frmAbout();
@@ -613,3 +749,31 @@ void MainWindow::trayIconClicked(QSystemTrayIcon::ActivationReason reason)
 }
 
 
+void MainWindow::slotStartProg()
+{
+	timer_polling->stop();
+	BaseSettings::BASE_DEVICE_SETTINGS_S device = BaseSettings::getInstance().getDeviceSettings();
+
+	if(ui->filePath->text().length()!=0)
+	{
+
+		file=new QFile(ui->filePath->text());
+
+		if(file->open(QFile::ReadOnly))
+		{
+			QByteArray byteArray=file->readAll();
+
+			bufLenght = byteArray.length();
+			buff = new unsigned char[bufLenght];
+
+			//копируем образ
+			for(int i=0; i<byteArray.length();i++)
+				buff[i]=byteArray.data()[i];
+			file->close();
+			ui->progressBar->setValue(0);
+			sendCommand(START_DOWNLOADER);
+
+		}
+	}
+	timer_polling->start();
+}

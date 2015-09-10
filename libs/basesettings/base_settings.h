@@ -87,7 +87,8 @@ public:
 	{
 		IDLE = 0,    // начало работы
 		SEARCH,      // поиск устройства
-		READY        // работа
+		READY,       // работа
+		FIRMWARE,    // обновление прошивки
 	};
 	struct BASE_DEVICE_SETTINGS_S
 	{
